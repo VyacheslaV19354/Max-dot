@@ -1,0 +1,51 @@
+import os
+import logging
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+# Настройка логирования
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Загрузка переменных из .env файла
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Команда /start"""
+    await update.message.reply_text("Привет! Я бот-шаблон. Отправь мне URL, и я его обработаю.")
+
+async def echo_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка текстовых сообщений (URL)"""
+    user_url = update.message.text
+    max_url = os.getenv("MAX_URL")
+    
+    if user_url.startswith(max_url):
+        await update.message.reply_text(f"✅ Ссылка валидна!\n{user_url}")
+    else:
+        await update.message.reply_text(f"❌ Ссылка не соответствует шаблону {max_url}")
+
+def main() -> None:
+    """Запуск бота"""
+    if not TELEGRAM_TOKEN:
+        logger.error("TELEGRAM_TOKEN не найден в переменных окружения!")
+        return
+
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", start))
+    application.add_handler(CommandHandler("about", start))
+    
+    application.add_handler(CommandHandler("setmax", start))
+    application.add_handler(CommandHandler("getmax", start))
+
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_url))
+
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
